@@ -1,0 +1,8 @@
+server:
+  applicationConnectors:
+    - type: http
+      port: 8080
+
+csvSeparator: ";"
+redisPort: 6379
+redisHost: "localhost"
