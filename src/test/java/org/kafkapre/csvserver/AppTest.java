@@ -74,17 +74,15 @@ public class AppTest extends AbstractRedisTest {
     }
 
     private String sendRequest(HttpRequestBase request, String mediaType) throws IOException {
-
         request.setHeader("Accept", mediaType);
 
-        HttpClient client = HttpClientBuilder.create().build();
-
+        CloseableHttpClient client = HttpClients.createDefault();
         HttpResponse response = client.execute(request);
-
 //        System.out.println("Response Code : " + response.getStatusLine().getStatusCode());
 
         String result = requestContentToString(response.getEntity().getContent());
 
+        client.close();
         return result;
     }
 
@@ -96,7 +94,7 @@ public class AppTest extends AbstractRedisTest {
         StringEntity entity = new StringEntity(json);
         httpPost.setEntity(entity);
         httpPost.setHeader("Accept", "application/json");
-        httpPost.setHeader("Content-type", "application/json");
+        httpPost.setHeader("Content-type", );
 
         CloseableHttpResponse response = client.execute(httpPost);
         String result = requestContentToString(response.getEntity().getContent());
