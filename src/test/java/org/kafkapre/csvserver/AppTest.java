@@ -19,14 +19,15 @@ import org.kafkapre.csvserver.model.CsvDocument;
 import javax.ws.rs.core.MediaType;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.Random;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class AppTest extends AbstractRedisTest {
 
     private final String host = "http://localhost:8085/";
+    private ObjectMapper mapper = new ObjectMapper();
 
     @BeforeClass
     public static void classSetUp() throws Exception {
@@ -37,84 +38,54 @@ public class AppTest extends AbstractRedisTest {
 
     @Test
     public void appTest() throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
         String url = host + "csv";
 
-        String randName = String.valueOf(new Random().nextInt());
-
-        String csv =  randName + " name;surename;age\n" +
+        String csv = "name;surename;age\n" +
                 "john;doe;0\n" +
                 "anna;jermush;4\n" +
                 "george;paton;5";
 
         String jsonInString = doPost(url, csv);
-
-        System.out.println();
-        System.out.println("jjjjjjjjjL: " + jsonInString);
-
         CsvDocument csvDocument = mapper.readValue(jsonInString, CsvDocument.class);
 
         HttpGet request = new HttpGet(host + csvDocument.getPath());
         String actual = sendRequest(request, MediaType.APPLICATION_JSON);
-
-        System.out.println("xxxx: " + actual);
-
+        assertThat(actual).isEqualTo("{\"id\":1,\"linesCount\":3,\"path\":\"/csv/1\",\"linesPath\":\"/csv/1/lines\",\"headers\":[\"name\",\"surename\",\"age\"]}");
 
         request = new HttpGet((host + csvDocument.getLinesPath() + "?from=1&to=-1"));
         actual = sendRequest(request, MediaType.APPLICATION_JSON);
-
-        System.out.println("yyyyyy: " + actual);
-
+        assertThat(actual).isEqualTo("{\"lines\":[{\"num\":0,\"content\":\"anna;jermush;4\"},{\"num\":1,\"content\":\"george;paton;5\"}]}");
 
         request = new HttpGet((host));
         actual = sendRequest(request, MediaType.APPLICATION_XML);
-
-        System.out.println("sssss: " + actual);
-
+        assertThat(actual).isEqualTo("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><rootApi><healtcheckPath>/healthcheck</healtcheckPath><csvPath>/csv</csvPath></rootApi>");
 
         request = new HttpGet(host + CsvDocument.determinePath(""));
         actual = sendRequest(request, MediaType.APPLICATION_XML);
-
-        System.out.println("rrrr: " + actual);
+        assertThat(actual).isEqualTo("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><idCollection><ids><id>/csv/1</id></ids></idCollection>");
 
         request = new HttpGet(host + csvDocument.getPath());
         actual = sendRequest(request, MediaType.APPLICATION_XML);
-
-        System.out.println("qqqq: " + actual);
-
+        assertThat(actual).isEqualTo("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><csvDocument><id>1</id><headers><header>name</header><header>surename</header><header>age</header></headers><linesCount>3</linesCount><linesPath>/csv/1/lines</linesPath><path>/csv/1</path></csvDocument>");
 
         request = new HttpGet((host + csvDocument.getLinesPath() + "?from=0&to=-1"));
         actual = sendRequest(request, MediaType.APPLICATION_XML);
-
-        System.out.println("oooo: " + actual);
-
+        assertThat(actual).isEqualTo("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><lineCollection><lines><lines><num>0</num><content>john;doe;0</content></lines><lines><num>1</num><content>anna;jermush;4</content></lines><lines><num>2</num><content>george;paton;5</content></lines></lines></lineCollection>");
     }
 
     private String sendRequest(HttpRequestBase request, String mediaType) throws IOException {
 
-//        request.addHeader("Media-Type", mediaType);
         request.setHeader("Accept", mediaType);
 
         HttpClient client = HttpClientBuilder.create().build();
 
-
-// add request header
-//        request.addHeader("User-Agent", USER_AGENT);
         HttpResponse response = client.execute(request);
 
-//        System.out.println("Response Code : "
-//                + response.getStatusLine().getStatusCode());
+//        System.out.println("Response Code : " + response.getStatusLine().getStatusCode());
 
-        BufferedReader rd = new BufferedReader(
-                new InputStreamReader(response.getEntity().getContent()));
+        String result = requestContentToString(response.getEntity().getContent());
 
-        StringBuilder result = new StringBuilder();
-        String line = "";
-        while ((line = rd.readLine()) != null) {
-            result.append(line);
-        }
-
-        return result.toString();
+        return result;
     }
 
     private String doPost(String url, String content) throws IOException {
@@ -127,11 +98,15 @@ public class AppTest extends AbstractRedisTest {
         httpPost.setHeader("Accept", "application/json");
         httpPost.setHeader("Content-type", "application/json");
 
-
         CloseableHttpResponse response = client.execute(httpPost);
+        String result = requestContentToString(response.getEntity().getContent());
+        client.close();
 
-        BufferedReader rd = new BufferedReader(
-                new InputStreamReader(response.getEntity().getContent()));
+        return result;
+    }
+
+    private String requestContentToString(InputStream inputStream) throws IOException {
+        BufferedReader rd = new BufferedReader(new InputStreamReader(inputStream));
 
         StringBuilder result = new StringBuilder();
         String line = "";
@@ -139,9 +114,6 @@ public class AppTest extends AbstractRedisTest {
             result.append(line);
         }
 
-        client.close();
-
         return result.toString();
-
     }
 }
