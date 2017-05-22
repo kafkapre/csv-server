@@ -48,5 +48,43 @@ docker run --name myredis -p 6379:6379 -d redis:3.2.6
 ##### Run server
 For example go to project's "target" directory and run command:
 ```
-java -jar csvserver-1.0.jar
+java -jar csvserver-1.0.jar server <paths_to_properties_file>
 ```
+
+###### Properties file
+
+```
+server:
+  applicationConnectors:
+    - type: http
+      port: 8080        # jetty port
+
+csvSeparator: ";"
+redisPort: 6379
+redisHost: "localhost"
+```
+
+###Used technologies
+
+>- Embedded Jetty
+>- Embedded Redis (for testing)
+>- Java 8
+>- Jackson, Jersey, Dropwizard frameworks
+
+### API
+
+ - GET     / 
+    - root endpoint
+ - GET     /csv 
+    - Returns list of all csv documents 
+ - POST    /csv 
+    - Create csv document. Accepts text plain body.
+ - GET     /csv/{id} 
+    - Returns particular csv document metadata
+ - PUT     /csv/{id} 
+    - Update particular csv document
+ - GET     /csv/{id}/lines?from=0&to=-1
+    - Returns all lines of csv document with {id}
+    
+    
+    
